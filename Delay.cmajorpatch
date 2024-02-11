@@ -1,0 +1,14 @@
+{
+    "CmajorVersion":    1,
+    "ID":               "com.your_name.your_patch_ID",
+    "version":          "1.0",
+    "name":             "Delay",
+    "description":      "Delay",
+    "category":         "generator",
+    "manufacturer":     "TensorAudio",
+    "isInstrument":     true,
+
+    "source":           "Delay.cmajor",
+
+    "externals": {"delay::t": "piano_84.ogg"}
+}

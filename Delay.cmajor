@@ -1,0 +1,76 @@
+/*
+    Author      :   Florian Heringa
+    Date        :   10-02-2024
+    Description :   A simple fixed delay line made in Cmajor
+                    It also shows how to load a sample from a file and pass it directly into the signal chain.
+                    Tha sample plays just once on initialisation and is here used as a test impulse for the delay.
+*/
+
+namespace delay
+{
+    // Reference to an externally loaded track.
+    // The compiler will interpret string values, specified in the manifest file
+    // More info: https://cmajor.dev/docs/PatchFormat#external-variable-data
+    external std::audio_data::Stereo t;
+
+    // Processor to actually load the audio data and use it as an event
+    // Both the type of the external track and the track itself can be passed
+    processor externalTrack (using trackType, trackType extTrack)
+    {
+        output event trackType track;
+
+        void main()
+        {
+            // No loop so the code is only triggered once
+            track <- extTrack;
+            advance();
+        }        
+    }
+
+    // Main graph holding =>
+    //  A track, a sample player and a fixed delay line
+    graph Delay  [[main]]
+    {
+        output stream float<2> out;
+
+        node
+        {
+            myTrack = externalTrack(std::audio_data::Stereo, t);
+            samplePlayer = std::audio_data::SamplePlayer(std::audio_data::Stereo);
+            fixedDelay = FixedDelay(float<2>, 20000);
+        }
+
+        connection {
+            myTrack.track -> samplePlayer.content;
+            samplePlayer -> fixedDelay -> out;
+        }
+    }
+
+    // Fixed Delay, implemented as a delay line
+    // More info: https://www.dsprelated.com/freebooks/pasp/Delay_Lines.html
+    // Or see the All Pass filter in the Freeverb.cmajor example:
+    // https://github.com/SoundStacks/cmajor/blob/main/examples/patches/Freeverb/Freeverb.cmajor
+    processor FixedDelay (using FrameType, int delayLength)
+    {
+        input stream FrameType in;
+        output stream FrameType out;
+
+        FrameType[delayLength] buf;
+        wrap<delayLength> head;
+    
+        void main()
+        {
+            loop
+            {
+                let current = in;
+                let delayed = buf[head];
+                buf[head] = current + (delayed * FrameType(0.5));
+                out <- current + delayed;
+                ++head;
+                advance();
+            }
+        }
+    }
+}
+
+
